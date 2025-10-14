@@ -1,11 +1,12 @@
 import { Optional } from "@prisma/client/runtime/library";
 import { PrismaClient, User } from "../../generated/prisma";
+import { hashPassword } from "../utils/UserUtils";
 
 export default class UserService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async getUserById(id: string) {
-    const user = this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: {
         id: id,
       },
@@ -20,11 +21,13 @@ export default class UserService {
   }
 
   async createUser(user: Optional<User, "id">) {
+    const hashedPassword = await hashPassword(user.password);
+
     const newUser = await this.prisma.user.create({
       data: {
         email: user.email,
         name: user.name,
-        password: user.password,
+        password: hashedPassword,
       },
     });
 
@@ -32,6 +35,8 @@ export default class UserService {
   }
 
   async updateUser(id: string, user: Optional<User, "id">) {
+    const hashedPassword = await hashPassword(user.password);
+
     const updatedData = await this.prisma.user.update({
       where: {
         id: id,
@@ -39,7 +44,7 @@ export default class UserService {
       data: {
         email: user.email,
         name: user.name,
-        password: user.password,
+        password: hashedPassword,
       },
     });
 
