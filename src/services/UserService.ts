@@ -1,6 +1,7 @@
 import { Optional } from "@prisma/client/runtime/library";
-import { PrismaClient, User, Prisma } from "../../generated/prisma";
-import { hashPassword } from "../utils/UserUtils";
+import { PrismaClient, User } from "../../generated/prisma";
+import { getPaginationParams, hashPassword } from "../utils/UserUtils";
+import { NotFoundError } from "../errors/ApiError";
 
 export default class UserService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -16,7 +17,7 @@ export default class UserService {
   }
 
   async getAllUsers(page = 1, size = 10, direction: "asc" | "desc" = "asc") {
-    const { skip, take, order } = this.getPaginationParams(
+    const { skip, take, order } = getPaginationParams(
       page,
       size,
       direction
@@ -35,18 +36,6 @@ export default class UserService {
         status: true,
       },
     });
-  }
-
-  private getPaginationParams(
-    page: number,
-    size: number,
-    direction: "asc" | "desc"
-  ) {
-    const skip = (page - 1) * size;
-    const take = size;
-    const order: Prisma.SortOrder = direction === "desc" ? "desc" : "asc";
-
-    return { skip, take, order };
   }
 
   async createUser(user: Optional<User, "id">) {
