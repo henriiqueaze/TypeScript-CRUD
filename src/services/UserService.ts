@@ -1,5 +1,5 @@
 import { Optional } from "@prisma/client/runtime/library";
-import { PrismaClient, User } from "../../generated/prisma";
+import { PrismaClient, User, Prisma } from "../../generated/prisma";
 import { hashPassword } from "../utils/UserUtils";
 
 export default class UserService {
@@ -15,9 +15,38 @@ export default class UserService {
     return user;
   }
 
-  async getAllUsers() {
-    const users = this.prisma.user.findMany();
-    return users;
+  async getAllUsers(page = 1, size = 10, direction: "asc" | "desc" = "asc") {
+    const { skip, take, order } = this.getPaginationParams(
+      page,
+      size,
+      direction
+    );
+
+    return this.prisma.user.findMany({
+      skip,
+      take,
+      orderBy: { name: order },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+        status: true,
+      },
+    });
+  }
+
+  private getPaginationParams(
+    page: number,
+    size: number,
+    direction: "asc" | "desc"
+  ) {
+    const skip = (page - 1) * size;
+    const take = size;
+    const order: Prisma.SortOrder = direction === "desc" ? "desc" : "asc";
+
+    return { skip, take, order };
   }
 
   async createUser(user: Optional<User, "id">) {
@@ -46,6 +75,21 @@ export default class UserService {
         name: user.name,
         password: hashedPassword,
       },
+    });
+
+    return updatedData;
+  }
+
+  async updateUserField(id: string, data: Partial<User>) {
+    if (data.password) {
+      data.password = await hashPassword(data.password);
+    }
+
+    const updatedData = await this.prisma.user.update({
+      where: {
+        id: id,
+      },
+      data,
     });
 
     return updatedData;

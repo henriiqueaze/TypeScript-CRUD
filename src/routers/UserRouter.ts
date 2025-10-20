@@ -36,6 +36,10 @@ export const UserRouter = (router: Router) => {
     }
   );
 
+  router.patch(`${route}:id`, async (req: Request, res: Response) => {
+    return controller.updateUserField(req, res);
+  });
+
   router.delete(`${route}:id`, async (req: Request, res: Response) => {
     return controller.deleteUser(req, res);
   });
