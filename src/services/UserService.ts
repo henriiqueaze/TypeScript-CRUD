@@ -1,12 +1,17 @@
 import { Optional } from "@prisma/client/runtime/library";
 import { PrismaClient, User } from "../../generated/prisma";
-import { getPaginationParams, hashPassword } from "../utils/UserUtils";
-import { NotFoundError } from "../errors/ApiError";
+import {
+  getPaginationParams,
+  hashPassword,
+  userExists,
+} from "../utils/UserUtils";
 
 export default class UserService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async getUserById(id: string) {
+    await userExists(id);
+
     const user = await this.prisma.user.findUnique({
       where: {
         id: id,
@@ -17,11 +22,7 @@ export default class UserService {
   }
 
   async getAllUsers(page = 1, size = 10, direction: "asc" | "desc" = "asc") {
-    const { skip, take, order } = getPaginationParams(
-      page,
-      size,
-      direction
-    );
+    const { skip, take, order } = getPaginationParams(page, size, direction);
 
     return this.prisma.user.findMany({
       skip,
@@ -53,6 +54,8 @@ export default class UserService {
   }
 
   async updateUser(id: string, user: Optional<User, "id">) {
+    await userExists(id);
+
     const hashedPassword = await hashPassword(user.password);
 
     const updatedData = await this.prisma.user.update({
@@ -70,6 +73,8 @@ export default class UserService {
   }
 
   async updateUserField(id: string, data: Partial<User>) {
+    await userExists(id);
+
     if (data.password) {
       data.password = await hashPassword(data.password);
     }
@@ -85,6 +90,8 @@ export default class UserService {
   }
 
   async deleteUser(id: string) {
+    await userExists(id);
+
     await this.prisma.user.delete({
       where: {
         id: id,
